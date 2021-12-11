@@ -15,106 +15,29 @@ const workspace = process.env.GITHUB_WORKSPACE;
 (async () => {
   const pkg = getPackageJson()
   const event = process.env.GITHUB_EVENT_PATH ? require(process.env.GITHUB_EVENT_PATH) : {}
+  const bumpType = process.env.BUMP_TYPE
   console.log('bumptype', process.env.BUMP_TYPE)
   console.log('isBumptype', Boolean(process.env.BUMP_TYPE))
-  if (!event.commits) {
-    console.log("Couldn't find any commits in this event, incrementing patch version...")
-  }
 
   const tagPrefix = process.env['INPUT_TAG-PREFIX'] || ''
-  const messages = event.commits ? event.commits.map((commit) => commit.message + '\n' + commit.body) : []
 
-  const commitMessage = process.env['INPUT_COMMIT-MESSAGE'] || 'ci: version bump to {{version}}'
-  console.log('commit messages:', messages)
-  const commitMessageRegex = new RegExp(commitMessage.replace(/{{version}}/g, `${tagPrefix}\\d+\\.\\d+\\.\\d+`), 'ig')
-  const isVersionBump = messages.find((message) => commitMessageRegex.test(message)) !== undefined
-
-  if (isVersionBump) {
-    exitSuccess('No action necessary because we found a previous bump!')
-    return
-  }
-
-  // input wordings for MAJOR, MINOR, PATCH, PRE-RELEASE
-  const majorWords = process.env['INPUT_MAJOR-WORDING'].split(',')
-  const minorWords = process.env['INPUT_MINOR-WORDING'].split(',')
-  // patch is by default empty, and '' would always be true in the includes(''), thats why we handle it separately
-  const patchWords = process.env['INPUT_PATCH-WORDING'] ? process.env['INPUT_PATCH-WORDING'].split(',') : null
-  const preReleaseWords = process.env['INPUT_RC-WORDING'] ? process.env['INPUT_RC-WORDING'].split(',') : null
-
-  console.log('config words:', { majorWords, minorWords, patchWords, preReleaseWords })
+  const commitMessage = process.env['INPUT_COMMIT-MESSAGE'] || 'CI: version bump to {{version}}'
 
   // get default version bump
-  let version = process.env.INPUT_DEFAULT
-  let foundWord = null
-  // get the pre-release prefix specified in action
-  let preid = process.env.INPUT_PREID
+  let version = undefined
 
-  // case: if wording for MAJOR found
-  if (
-    messages.some(
-      (message) => /^([a-zA-Z]+)(\(.+\))?(\!)\:/.test(message) || majorWords.some((word) => message.includes(word))
-    )
-  ) {
-    version = 'major'
-  }
-  // case: if wording for MINOR found
-  else if (messages.some((message) => minorWords.some((word) => message.includes(word)))) {
-    version = 'minor'
-  }
-  // case: if wording for PATCH found
-  else if (patchWords && messages.some((message) => patchWords.some((word) => message.includes(word)))) {
-    version = 'patch'
-  }
-  // case: if wording for PRE-RELEASE found
-  else if (
-    preReleaseWords &&
-    messages.some((message) =>
-      preReleaseWords.some((word) => {
-        if (message.includes(word)) {
-          foundWord = word
-          return true
-        } else {
-          return false
-        }
-      })
-    )
-  ) {
-    preid = foundWord.split('-')[1]
-    version = 'prerelease'
+  const versions = {
+    major: 'major',
+    minor: 'minor',
+    patch: 'patch',
   }
 
-  console.log('version action after first waterfall:', version)
-
-  // case: if default=prerelease,
-  // rc-wording is also set
-  // and does not include any of rc-wording
-  // then unset it and do not run
-  if (
-    version === 'prerelease' &&
-    preReleaseWords &&
-    !messages.some((message) => preReleaseWords.some((word) => message.includes(word)))
-  ) {
-    version = null
-  }
-
-  // case: if default=prerelease, but rc-wording is NOT set
-  if (version === 'prerelease' && preid) {
-    version = 'prerelease'
-    version = `${version} --preid=${preid}`
-  }
-
-  console.log('version action after final decision:', version)
+  version = versions[bumpType.toLowerCase()]
+  console.log('version action:', version)
 
   // case: if nothing of the above matches
-  if (version === null) {
+  if (!version) {
     exitSuccess('No version keywords found, skipping bump.')
-    return
-  }
-
-  // case: if user sets push to false, to skip pushing new tag/package.json
-  const push = process.env.INPUT_PUSH
-  if (push === 'false' || push === false) {
-    exitSuccess('User requested to skip pushing new tag and package.json. Finished.')
     return
   }
 
@@ -122,7 +45,7 @@ const workspace = process.env.GITHUB_WORKSPACE;
   try {
     const current = pkg.version.toString()
     // set git user
-    await runInWorkspace('git', ['config', 'user.name', `"${process.env.GITHUB_USER || 'Automated Version Bump'}"`])
+    await runInWorkspace('git', ['config', 'user.name', `"${process.env.GITHUB_USER || 'Version Bump'}"`])
     await runInWorkspace('git', [
       'config',
       'user.email',
