@@ -3,7 +3,6 @@ const { execSync, spawn } = require('child_process')
 const { existsSync } = require('fs')
 const { EOL } = require('os')
 const path = require('path')
-const github = require('@actions/github')
 const core = require('@actions/core')
 
 // Change working directory if user defined PACKAGEJSON_DIR
