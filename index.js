@@ -14,32 +14,15 @@ const workspace = process.env.GITHUB_WORKSPACE;
 
 (async () => {
   const pkg = getPackageJson()
-  const event = process.env.GITHUB_EVENT_PATH ? require(process.env.GITHUB_EVENT_PATH) : {}
-  const bumpType = process.env.BUMP_TYPE
-  console.log('bumptype', process.env.BUMP_TYPE)
-  console.log('isBumptype', Boolean(process.env.BUMP_TYPE))
 
   const tagPrefix = process.env['INPUT_TAG-PREFIX'] || ''
 
   const commitMessage = process.env['INPUT_COMMIT-MESSAGE'] || 'CI: version bump to {{version}}'
 
   // get default version bump
-  let version = undefined
+  let version = process.env.BUMP_VERSION
 
-  const versions = {
-    major: 'major',
-    minor: 'minor',
-    patch: 'patch',
-  }
-
-  version = versions[bumpType.toLowerCase()]
   console.log('version action:', version)
-
-  // case: if nothing of the above matches
-  if (!version) {
-    exitSuccess('No version keywords found, skipping bump.')
-    return
-  }
 
   // GIT logic
   try {
