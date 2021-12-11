@@ -3,7 +3,6 @@ const { execSync, spawn } = require('child_process')
 const { existsSync } = require('fs')
 const { EOL } = require('os')
 const path = require('path')
-const core = require('@actions/core')
 
 // Change working directory if user defined PACKAGEJSON_DIR
 if (process.env.PACKAGEJSON_DIR) {
@@ -16,9 +15,8 @@ const workspace = process.env.GITHUB_WORKSPACE;
 (async () => {
   const pkg = getPackageJson()
   const event = process.env.GITHUB_EVENT_PATH ? require(process.env.GITHUB_EVENT_PATH) : {}
-  const npmVersion = core.getInput('npmVersion')
-
-  console.log('npmVersion', npmVersion)
+  console.log('bumptype', process.env.BUMP_TYPE)
+  console.log('isBumptype', Boolean(process.env.BUMP_TYPE))
   if (!event.commits) {
     console.log("Couldn't find any commits in this event, incrementing patch version...")
   }
